@@ -11,7 +11,7 @@ import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
 
-class InitiatePayment @Inject constructor(
+class InitiatePaymentUseCase @Inject constructor(
     private val repository: PaymentRepository
 ) {
     operator fun invoke(cardDetailsRequestDto: CardDetailsRequestDto): Flow<Resource<Payment>> =
