@@ -1,29 +1,26 @@
 package com.example.a3dsecurepaymentapp.domain.use_case.initiate_payment
 
 import com.example.a3dsecurepaymentapp.common.Resource
-import com.example.a3dsecurepaymentapp.data.remote.dto.CardDetailsRequestDto
+import com.example.a3dsecurepaymentapp.domain.model.CardDetails
 import com.example.a3dsecurepaymentapp.data.remote.dto.toPayment
 import com.example.a3dsecurepaymentapp.domain.model.Payment
 import com.example.a3dsecurepaymentapp.domain.repository.PaymentRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import retrofit2.HttpException
-import java.io.IOException
+import kotlinx.coroutines.flow.channelFlow
 import javax.inject.Inject
 
 class InitiatePaymentUseCase @Inject constructor(
     private val repository: PaymentRepository
 ) {
-    operator fun invoke(cardDetailsRequestDto: CardDetailsRequestDto): Flow<Resource<Payment>> =
-        flow {
+    operator fun invoke(cardDetails: CardDetails): Flow<Resource<Payment>> =
+
+        channelFlow {
             try {
-                emit(Resource.Loading<Payment>())
-                val payment = repository.initiatePayment(cardDetailsRequestDto).toPayment()
-                emit(Resource.Success<Payment>(payment))
-            } catch (e: HttpException) {
-                emit(Resource.Error<Payment>(e.localizedMessage ?: "Sorry, Something went wrong!"))
-            } catch (e: IOException) {
-                emit(Resource.Error<Payment>("Couldn't reach server. Check your internet connection."))
+                send(Resource.Loading<Payment>())
+                val payment = repository.initiatePayment(cardDetails).toPayment()
+                send(Resource.Success<Payment>(payment))
+            } catch (e: Exception) {
+                send(Resource.Error<Payment>(e.localizedMessage ?: "Sorry, Something went wrong!"))
             }
         }
 }

@@ -1,10 +1,10 @@
-package com.example.a3dsecurepaymentapp.data.remote.dto
+package com.example.a3dsecurepaymentapp.domain.model
 
 import com.example.a3dsecurepaymentapp.common.Constants.FAILURE_URL
 import com.example.a3dsecurepaymentapp.common.Constants.SUCCESS_URL
 import com.google.gson.annotations.SerializedName
 
-data class CardDetailsRequestDto(
+data class CardDetails(
     @SerializedName("expiry_month")
     val expiryMonth: String,
     @SerializedName("expiry_year")
