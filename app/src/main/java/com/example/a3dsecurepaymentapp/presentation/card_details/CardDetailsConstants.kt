@@ -4,6 +4,7 @@ class CardDetailsConstants {
 
     companion object  {
         const val CVV = "cvv"
+        const val EXPIRY_DATE = "expiryDate"
         const val CREDIT_CARD_NUMBER = "ccNumber"
     }
 }

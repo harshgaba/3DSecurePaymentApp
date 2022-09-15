@@ -1,13 +1,16 @@
 package com.example.a3dsecurepaymentapp.presentation.card_details.components.text_field
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
+import androidx.compose.material.icons.Icons
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,8 +33,8 @@ fun CustomTextField(
         VisualTransformation.None
     },
     onValueChange: OnValueChange,
-    onImeKeyAction: OnImeKeyAction
-
+    onImeKeyAction: OnImeKeyAction,
+    placeHolder: String = ""
 ) {
     val fieldValue = remember {
         mutableStateOf(TextFieldValue(inputWrapper.value, TextRange(inputWrapper.value.length)))
@@ -40,6 +43,7 @@ fun CustomTextField(
         TextField(
             modifier = modifier,
             value = fieldValue.value,
+            placeholder = { Text(placeHolder) },
             onValueChange = {
                 fieldValue.value = it
                 onValueChange(it.text)

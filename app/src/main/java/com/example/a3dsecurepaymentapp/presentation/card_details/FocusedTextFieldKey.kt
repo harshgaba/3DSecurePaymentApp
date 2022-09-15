@@ -5,6 +5,7 @@ package com.example.a3dsecurepaymentapp.presentation.card_details
  */
 enum class FocusedTextFieldKey {
     CVV,
+    EXPIRY_DATE,
     CREDIT_CARD_NUMBER,
     NONE
 }

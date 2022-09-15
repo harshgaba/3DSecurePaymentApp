@@ -1,7 +1,9 @@
 package com.example.a3dsecurepaymentapp.presentation.card_details
 
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.TransformedText
 import androidx.lifecycle.ViewModel
@@ -15,12 +17,14 @@ import kotlinx.coroutines.FlowPreview
 import javax.inject.Inject
 import androidx.lifecycle.SavedStateHandle
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.formaters.FormatAmexCard
+import com.example.a3dsecurepaymentapp.domain.use_case.card_details.formaters.FormatDate
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.formaters.FormatDinnersClubCard
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.formaters.FormatOtherCards
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.scheme.CardScheme
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.scheme.IdentifyCardScheme
 import com.example.a3dsecurepaymentapp.presentation.card_details.CardDetailsConstants.Companion.CREDIT_CARD_NUMBER
 import com.example.a3dsecurepaymentapp.presentation.card_details.CardDetailsConstants.Companion.CVV
+import com.example.a3dsecurepaymentapp.presentation.card_details.CardDetailsConstants.Companion.EXPIRY_DATE
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -35,11 +39,13 @@ class CardDetailViewModel @Inject constructor(
     private val formatAmexCard: FormatAmexCard,
     private val formatDinnersClubCard: FormatDinnersClubCard,
     private val formatOtherCards: FormatOtherCards,
+    private val formatDate: FormatDate,
     private val handle: SavedStateHandle
 ) : ViewModel() {
 
     val creditCardNumber = handle.getStateFlow(CREDIT_CARD_NUMBER, InputWrapper())
     val cvv = handle.getStateFlow(CVV, InputWrapper())
+    val expiryDate = handle.getStateFlow(EXPIRY_DATE, InputWrapper())
 
     private val _state = mutableStateOf(CardDetailState())
     val state: State<CardDetailState> = _state
@@ -49,9 +55,10 @@ class CardDetailViewModel @Inject constructor(
 
     private val inputEvents = Channel<UserInputEvent>(Channel.CONFLATED)
 
-    val areInputsValid = combine(cvv, creditCardNumber) { cvv, cardNumber ->
+    val areInputsValid = combine(cvv, creditCardNumber, expiryDate) { cvv, cardNumber, expiryDate ->
         cvv.value.isNotEmpty() && cvv.errorId == null &&
-                cardNumber.value.isNotEmpty() && cardNumber.errorId == null
+                cardNumber.value.isNotEmpty() && cardNumber.errorId == null &&
+                expiryDate.value.isNotEmpty() && expiryDate.errorId == null
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
 
@@ -74,7 +81,10 @@ class CardDetailViewModel @Inject constructor(
                 .onEach { event ->
                     when (event) {
                         is UserInputEvent.Cvv -> {
-                            when (InputValidator.getCVVErrorResIdOrNull(event.input,getCardScheme(event.input))) {
+                            when (InputValidator.getCVVErrorResIdOrNull(
+                                event.input,
+                                getCardScheme(event.input)
+                            )) {
                                 null -> {
                                     handle[CVV] =
                                         cvv.value.copy(value = event.input, errorId = null)
@@ -85,7 +95,10 @@ class CardDetailViewModel @Inject constructor(
                             }
                         }
                         is UserInputEvent.CreditCard -> {
-                            when (InputValidator.getCardNumberErrorResIdOrNull(event.input,getCardScheme(event.input))) {
+                            when (InputValidator.getCardNumberErrorResIdOrNull(
+                                event.input,
+                                getCardScheme(event.input)
+                            )) {
                                 null -> {
                                     handle[CREDIT_CARD_NUMBER] = creditCardNumber.value.copy(
                                         value = event.input,
@@ -98,17 +111,38 @@ class CardDetailViewModel @Inject constructor(
                                 }
                             }
                         }
+                        is UserInputEvent.ExpiryDate -> {
+                            when (InputValidator.getExpiryDateErrorResIdOrNull(event.input)) {
+                                null -> {
+                                    handle[EXPIRY_DATE] =
+                                        expiryDate.value.copy(value = event.input, errorId = null)
+                                }
+                                else -> {
+                                    handle[EXPIRY_DATE] = expiryDate.value.copy(value = event.input)
+                                }
+                            }
+                        }
                     }
                 }
                 .debounce(350)
                 .collect { event ->
                     when (event) {
                         is UserInputEvent.Cvv -> {
-                            val errorId = InputValidator.getCVVErrorResIdOrNull(event.input,getCardScheme(event.input))
+                            val errorId = InputValidator.getCVVErrorResIdOrNull(
+                                event.input,
+                                getCardScheme(event.input)
+                            )
                             handle[CVV] = cvv.value.copy(errorId = errorId)
                         }
+                        is UserInputEvent.ExpiryDate -> {
+                            val errorId = InputValidator.getExpiryDateErrorResIdOrNull(event.input)
+                            handle[EXPIRY_DATE] = expiryDate.value.copy(errorId = errorId)
+                        }
                         is UserInputEvent.CreditCard -> {
-                            val errorId = InputValidator.getCardNumberErrorResIdOrNull(event.input,getCardScheme(event.input))
+                            val errorId = InputValidator.getCardNumberErrorResIdOrNull(
+                                event.input,
+                                getCardScheme(event.input)
+                            )
                             handle[CREDIT_CARD_NUMBER] =
                                 creditCardNumber.value.copy(errorId = errorId)
                         }
@@ -118,19 +152,77 @@ class CardDetailViewModel @Inject constructor(
     }
 
 
-    fun getInputErrorsOrNull(cvv: String, creditCard: String): InputErrors? {
-        val nameErrorId = InputValidator.getCVVErrorResIdOrNull(cvv,getCardScheme(creditCard))
-        val cardErrorId = InputValidator.getCardNumberErrorResIdOrNull(creditCard,getCardScheme(creditCard))
-        return if (nameErrorId == null && cardErrorId == null) {
+    fun onCVVEntered(input: String) {
+        inputEvents.trySend(UserInputEvent.Cvv(input))
+    }
+
+    fun onExpiryDateEntered(input: String) {
+        inputEvents.trySend(UserInputEvent.ExpiryDate(input))
+    }
+
+    fun onCardNumberEntered(input: String) {
+        inputEvents.trySend(UserInputEvent.CreditCard(input))
+    }
+
+    fun onTextFieldFocusChanged(key: FocusedTextFieldKey, isFocused: Boolean) {
+        focusedTextField = if (isFocused) key else FocusedTextFieldKey.NONE
+    }
+
+    fun onCVVImeActionClick() {
+        _events.trySend(ScreenEvent.MoveFocus(FocusDirection.Right))
+    }
+
+    fun onExpiryDateImeActionClick() {
+        _events.trySend(ScreenEvent.MoveFocus())
+    }
+
+    fun onPayClick() {
+        viewModelScope.launch(Dispatchers.Default) {
+            when (val inputErrors = getInputErrorsOrNull(
+                cvv.value.value,
+                creditCardNumber.value.value,
+                expiryDate.value.value
+            )) {
+                null -> {
+                    clearFocusAndHideKeyboard()
+                   makePayment(buildCardDetails())
+                }
+                else -> displayInputErrors(inputErrors)
+            }
+        }
+    }
+
+    private fun buildCardDetails(): CardDetails {
+
+        return CardDetails(
+            expiryYear = expiryDate.value.value.takeLast(4),
+             expiryMonth = expiryDate.value.value.substring(0..1),
+            number= creditCardNumber.value.value.filter { it.isDigit() },
+            cvv = cvv.value.value
+        )
+    }
+
+    fun getInputErrorsOrNull(cvv: String, creditCard: String, expiryDate: String): InputErrors? {
+        val cvvErrorId = InputValidator.getCVVErrorResIdOrNull(cvv, getCardScheme(creditCard))
+        val cardErrorId =
+            InputValidator.getCardNumberErrorResIdOrNull(creditCard, getCardScheme(creditCard))
+        val expiryErrorId = InputValidator.getExpiryDateErrorResIdOrNull(expiryDate)
+        return if (cvvErrorId == null && cardErrorId == null && expiryErrorId == null) {
             null
         } else {
-            InputErrors(nameErrorId, cardErrorId)
+            InputErrors(
+                cvvErrorId = cvvErrorId,
+                cardErrorId = cardErrorId,
+                expiryDateErrorId = expiryErrorId
+            )
         }
     }
 
     private fun displayInputErrors(inputErrors: InputErrors) {
         handle[CVV] = cvv.value.copy(errorId = inputErrors.cvvErrorId)
         handle[CREDIT_CARD_NUMBER] = creditCardNumber.value.copy(errorId = inputErrors.cardErrorId)
+        handle[EXPIRY_DATE] = expiryDate.value.copy(errorId = inputErrors.expiryDateErrorId)
+
     }
 
     private suspend fun clearFocusAndHideKeyboard() {
@@ -170,12 +262,16 @@ class CardDetailViewModel @Inject constructor(
         return identifyCardScheme(cardNumber)
     }
 
-     fun getTransformedCardNumber(cardNumber: AnnotatedString): TransformedText {
+    fun getTransformedCardNumber(cardNumber: AnnotatedString): TransformedText {
         return when (getCardScheme(cardNumber.toString())) {
             CardScheme.AMEX -> formatAmexCard(cardNumber)
             CardScheme.DINERS_CLUB -> formatDinnersClubCard(cardNumber)
             else -> formatOtherCards(cardNumber)
         }
+    }
+
+    fun getTransformedDate(date: AnnotatedString): TransformedText {
+        return formatDate(date)
     }
 }
 

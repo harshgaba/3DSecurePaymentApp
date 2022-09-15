@@ -6,6 +6,7 @@ import com.example.a3dsecurepaymentapp.R
 import com.example.a3dsecurepaymentapp.data.repository.FakePaymentRepository
 import com.example.a3dsecurepaymentapp.data.repository.FakeRepoStatus
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.formaters.FormatAmexCard
+import com.example.a3dsecurepaymentapp.domain.use_case.card_details.formaters.FormatDate
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.formaters.FormatDinnersClubCard
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.formaters.FormatOtherCards
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.scheme.IdentifyCardScheme
@@ -30,22 +31,24 @@ internal class CardDetailViewModelTest {
             formatDinnersClubCard = FormatDinnersClubCard(),
             formatOtherCards = FormatOtherCards(),
             identifyCardScheme = IdentifyCardScheme(),
+            formatDate = FormatDate(),
             handle = SavedStateHandle()
         )
     }
 
     @Test
     fun `get input fields validation error message, returns null`() {
-        val inputErrors = cardDetailViewModel.getInputErrorsOrNull("234", "4242424242424242")
+        val inputErrors = cardDetailViewModel.getInputErrorsOrNull("234", "4242424242424242","022099")
         assertThat(inputErrors).isNull()
     }
 
     @Test
     fun `get input fields validation error message, returns message ids`() {
-        val inputErrors = cardDetailViewModel.getInputErrorsOrNull("", "")
+        val inputErrors = cardDetailViewModel.getInputErrorsOrNull("", "","")
         assertThat(inputErrors).isNotNull()
         assertThat(inputErrors?.cvvErrorId).isEqualTo(R.string.cvv_too_short)
         assertThat(inputErrors?.cardErrorId).isEqualTo(R.string.card_number_too_short)
+        assertThat(inputErrors?.expiryDateErrorId).isEqualTo(R.string.invalid_expiry_date)
     }
 
     @Test
