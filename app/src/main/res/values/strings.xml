@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">3DSecurePaymentApp</string>
+    <string name="validation_error">validation error</string>
+    <string name="success">success</string>
+    <string name="credit_card_number">Credit card number</string>
+    <string name="cvv_too_short">Cvv is too short</string>
+    <string name="cvv">CVV</string>
+    <string name="expiry_date">Expiry date</string>
+    <string name="card_number_too_short">Number is too short</string>
+    <string name="invalid_expiry_date">Invalid expiry date</string>
+    <string name="pay">PAY</string>
 </resources>
