@@ -8,6 +8,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
@@ -16,12 +18,31 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
+
     @Provides
     @Singleton
-    fun providePaymentApi(): PaymentApi {
+    fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
+
+        return HttpLoggingInterceptor().apply {
+            setLevel(HttpLoggingInterceptor.Level.BODY)
+        }
+    }
+
+    @Provides
+    @Singleton
+    fun provideOkhttpClient(logger: HttpLoggingInterceptor): OkHttpClient {
+        val client = OkHttpClient.Builder()
+        client.addInterceptor(logger)
+        return client.build()
+    }
+
+    @Provides
+    @Singleton
+    fun providePaymentApi(okHttpClient: OkHttpClient): PaymentApi {
         return Retrofit.Builder()
             .baseUrl(Constants.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
+            .client(okHttpClient)
             .build()
             .create(PaymentApi::class.java)
     }

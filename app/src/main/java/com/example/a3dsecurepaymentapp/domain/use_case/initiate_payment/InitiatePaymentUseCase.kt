@@ -19,7 +19,7 @@ class InitiatePaymentUseCase @Inject constructor(
                 send(Resource.Loading<Payment>())
                 val payment = repository.initiatePayment(cardDetails).toPayment()
                 send(Resource.Success<Payment>(payment))
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 send(Resource.Error<Payment>(e.localizedMessage ?: "Sorry, Something went wrong!"))
             }
         }

@@ -1,6 +1,5 @@
 package com.example.a3dsecurepaymentapp.presentation.card_details
 
-import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.focus.FocusDirection
@@ -47,8 +46,12 @@ class CardDetailViewModel @Inject constructor(
     val cvv = handle.getStateFlow(CVV, InputWrapper())
     val expiryDate = handle.getStateFlow(EXPIRY_DATE, InputWrapper())
 
-    private val _state = mutableStateOf(CardDetailState())
-    val state: State<CardDetailState> = _state
+    private val _paymentStatus = Channel<CardDetailState>()
+    val paymentStatus = _paymentStatus.receiveAsFlow()
+
+    private val _LoadingState = mutableStateOf(false)
+    val loadingState: State<Boolean> = _LoadingState
+
 
     private val _events = Channel<ScreenEvent>()
     val events = _events.receiveAsFlow()
@@ -75,6 +78,10 @@ class CardDetailViewModel @Inject constructor(
         if (focusedTextField != FocusedTextFieldKey.NONE) focusOnLastSelectedTextField()
     }
 
+    /**
+     * it observes user inputs and validates and displays error messages
+     * according to the applied rules
+     */
     private fun observeUserInputEvents() {
         viewModelScope.launch(Dispatchers.Default) {
             inputEvents.receiveAsFlow()
@@ -185,23 +192,41 @@ class CardDetailViewModel @Inject constructor(
             )) {
                 null -> {
                     clearFocusAndHideKeyboard()
-                   makePayment(buildCardDetails())
+                    makePayment(
+                        buildCardDetails(
+                            expiryDate = expiryDate.value.value,
+                            creditCardNumber = creditCardNumber.value.value,
+                            cvv = cvv.value.value
+                        )
+                    )
                 }
                 else -> displayInputErrors(inputErrors)
             }
         }
     }
 
-    private fun buildCardDetails(): CardDetails {
-
+    /**
+     * Builds the request data for payments api
+     * [expiryDate] the min expected length is 6 as it controls by InputValidator.getExpiryDateErrorResIdOrNull
+     * [creditCardNumber] the min expected values is all digits as it controls by InputValidator.getCardNumberErrorResIdOrNull
+     * [cvv]  as it controls by InputValidator.getCVVErrorResIdOrNull
+     */
+    fun buildCardDetails(
+        expiryDate: String,
+        creditCardNumber: String,
+        cvv: String
+    ): CardDetails {
         return CardDetails(
-            expiryYear = expiryDate.value.value.takeLast(4),
-             expiryMonth = expiryDate.value.value.substring(0..1),
-            number= creditCardNumber.value.value.filter { it.isDigit() },
-            cvv = cvv.value.value
+            expiryYear = expiryDate.takeLast(4),
+            expiryMonth = expiryDate.substring(0..1),
+            number = creditCardNumber.filter { it.isDigit() },
+            cvv = cvv
         )
     }
 
+    /**
+     * Validates all user inputs entries and display relevant error messages.
+     */
     fun getInputErrorsOrNull(cvv: String, creditCard: String, expiryDate: String): InputErrors? {
         val cvvErrorId = InputValidator.getCVVErrorResIdOrNull(cvv, getCardScheme(creditCard))
         val cardErrorId =
@@ -239,25 +264,6 @@ class CardDetailViewModel @Inject constructor(
         }
     }
 
-
-    private fun makePayment(cardDetails: CardDetails) {
-        initiatePayment(cardDetails = cardDetails).onEach { result ->
-            when (result) {
-                is Resource.Success -> {
-                    _state.value = CardDetailState(payment = result.data)
-                }
-                is Resource.Error -> {
-                    _state.value = CardDetailState(
-                        error = result.message ?: "Sorry, Something went wrong!"
-                    )
-                }
-                is Resource.Loading -> {
-                    _state.value = CardDetailState(isLoading = true)
-                }
-            }
-        }.launchIn(viewModelScope)
-    }
-
     private fun getCardScheme(cardNumber: String): CardScheme {
         return identifyCardScheme(cardNumber)
     }
@@ -272,6 +278,31 @@ class CardDetailViewModel @Inject constructor(
 
     fun getTransformedDate(date: AnnotatedString): TransformedText {
         return formatDate(date)
+    }
+
+    /**
+     * initate payment with user filed credit card details.
+     */
+    private fun makePayment(cardDetails: CardDetails) {
+        initiatePayment(cardDetails = cardDetails).onEach { result ->
+            when (result) {
+                is Resource.Success -> {
+                    _paymentStatus.send(
+                        CardDetailState(payment = result.data)
+                    )
+                }
+                is Resource.Error -> {
+                    _paymentStatus.send(
+                        CardDetailState(
+                            error = result.message ?: "Sorry, Something went wrong!"
+                        )
+                    )
+                }
+                is Resource.Loading -> {
+                    _LoadingState.value = true
+                }
+            }
+        }.launchIn(viewModelScope)
     }
 }
 

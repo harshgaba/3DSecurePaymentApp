@@ -15,9 +15,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.3DSecurePaymentApp"
+        android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
             android:name=".presentation.MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="true"
             android:theme="@style/Theme.3DSecurePaymentApp">
             <intent-filter>

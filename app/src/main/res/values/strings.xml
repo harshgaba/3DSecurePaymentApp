@@ -8,5 +8,8 @@
     <string name="expiry_date">Expiry date</string>
     <string name="card_number_too_short">Number is too short</string>
     <string name="invalid_expiry_date">Invalid expiry date</string>
+    <string name="invalid_card_number">Invalid Credit Card</string>
+    <string name="payment_successful">Great, Payment Successful!</string>
+    <string name="payment_failed">Sorry, Payment Failed!</string>
     <string name="pay">PAY</string>
 </resources>

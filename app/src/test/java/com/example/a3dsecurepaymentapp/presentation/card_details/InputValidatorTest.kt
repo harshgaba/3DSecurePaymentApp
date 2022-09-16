@@ -5,6 +5,7 @@ import com.example.a3dsecurepaymentapp.domain.use_case.card_details.scheme.CardS
 import com.example.a3dsecurepaymentapp.presentation.card_details.InputValidator.getCVVErrorResIdOrNull
 import com.example.a3dsecurepaymentapp.presentation.card_details.InputValidator.getCardNumberErrorResIdOrNull
 import com.example.a3dsecurepaymentapp.presentation.card_details.InputValidator.getExpiryDateErrorResIdOrNull
+import com.example.a3dsecurepaymentapp.presentation.card_details.InputValidator.isValidCardNumber
 import org.junit.Test
 import com.google.common.truth.Truth.assertThat
 
@@ -58,6 +59,16 @@ internal class InputValidatorTest {
         val result = getCardNumberErrorResIdOrNull("345678901234564", CardScheme.AMEX)
         assertThat(result).isNull()
     }
+    @Test
+    fun `check if card number is valid, returns true`() {
+        val result = isValidCardNumber("345678901234564")
+        assertThat(result).isEqualTo(true)
+    }
+    @Test
+    fun `check if card number is valid, returns false`() {
+        val result = isValidCardNumber("1010101010101010")
+        assertThat(result).isEqualTo(false)
+    }
 
     @Test
     fun `check when date is valid, returns null`() {
@@ -80,6 +91,12 @@ internal class InputValidatorTest {
     @Test
     fun `check when date is with invalid year, returns error id`() {
         val result = getExpiryDateErrorResIdOrNull("1999")
+        assertThat(result).isEqualTo(R.string.invalid_expiry_date)
+    }
+
+    @Test
+    fun `check when date is with valid year but past month, returns error id`() {
+        val result = getExpiryDateErrorResIdOrNull("012022")
         assertThat(result).isEqualTo(R.string.invalid_expiry_date)
     }
 
