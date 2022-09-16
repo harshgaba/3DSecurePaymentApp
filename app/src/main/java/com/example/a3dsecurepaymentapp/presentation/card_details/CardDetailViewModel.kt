@@ -1,6 +1,5 @@
 package com.example.a3dsecurepaymentapp.presentation.card_details
 
-import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.focus.FocusDirection
@@ -47,8 +46,12 @@ class CardDetailViewModel @Inject constructor(
     val cvv = handle.getStateFlow(CVV, InputWrapper())
     val expiryDate = handle.getStateFlow(EXPIRY_DATE, InputWrapper())
 
-    private val _state = mutableStateOf(CardDetailState())
-    val state: State<CardDetailState> = _state
+    private val _paymentStatus = Channel<CardDetailState>()
+    val paymentStatus = _paymentStatus.receiveAsFlow()
+
+    private val _LoadingState = mutableStateOf(false)
+    val loadingState: State<Boolean> = _LoadingState
+
 
     private val _events = Channel<ScreenEvent>()
     val events = _events.receiveAsFlow()
@@ -185,7 +188,7 @@ class CardDetailViewModel @Inject constructor(
             )) {
                 null -> {
                     clearFocusAndHideKeyboard()
-                   makePayment(buildCardDetails())
+                    makePayment(buildCardDetails())
                 }
                 else -> displayInputErrors(inputErrors)
             }
@@ -196,8 +199,8 @@ class CardDetailViewModel @Inject constructor(
 
         return CardDetails(
             expiryYear = expiryDate.value.value.takeLast(4),
-             expiryMonth = expiryDate.value.value.substring(0..1),
-            number= creditCardNumber.value.value.filter { it.isDigit() },
+            expiryMonth = expiryDate.value.value.substring(0..1),
+            number = creditCardNumber.value.value.filter { it.isDigit() },
             cvv = cvv.value.value
         )
     }
@@ -239,25 +242,6 @@ class CardDetailViewModel @Inject constructor(
         }
     }
 
-
-    private fun makePayment(cardDetails: CardDetails) {
-        initiatePayment(cardDetails = cardDetails).onEach { result ->
-            when (result) {
-                is Resource.Success -> {
-                    _state.value = CardDetailState(payment = result.data)
-                }
-                is Resource.Error -> {
-                    _state.value = CardDetailState(
-                        error = result.message ?: "Sorry, Something went wrong!"
-                    )
-                }
-                is Resource.Loading -> {
-                    _state.value = CardDetailState(isLoading = true)
-                }
-            }
-        }.launchIn(viewModelScope)
-    }
-
     private fun getCardScheme(cardNumber: String): CardScheme {
         return identifyCardScheme(cardNumber)
     }
@@ -272,6 +256,29 @@ class CardDetailViewModel @Inject constructor(
 
     fun getTransformedDate(date: AnnotatedString): TransformedText {
         return formatDate(date)
+    }
+
+
+    private fun makePayment(cardDetails: CardDetails) {
+        initiatePayment(cardDetails = cardDetails).onEach { result ->
+            when (result) {
+                is Resource.Success -> {
+                    _paymentStatus.send(
+                        CardDetailState(payment = result.data)
+                    )
+                }
+                is Resource.Error -> {
+                    _paymentStatus.send(
+                        CardDetailState(
+                            error = result.message ?: "Sorry, Something went wrong!"
+                        )
+                    )
+                }
+                is Resource.Loading -> {
+                    _LoadingState.value = true
+                }
+            }
+        }.launchIn(viewModelScope)
     }
 }
 

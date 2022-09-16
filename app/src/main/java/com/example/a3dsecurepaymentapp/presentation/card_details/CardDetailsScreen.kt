@@ -1,10 +1,13 @@
 package com.example.a3dsecurepaymentapp.presentation.card_details
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -23,6 +26,10 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.navigation.NavController
 import com.example.a3dsecurepaymentapp.presentation.card_details.components.text_field.CustomTextField
 import com.example.a3dsecurepaymentapp.R
+import com.example.a3dsecurepaymentapp.common.Constants.SECURE_3D_PAYMENT_TAG
+import com.example.a3dsecurepaymentapp.presentation.Screen
+import com.example.a3dsecurepaymentapp.presentation.ui.theme.TextWhite
+import kotlinx.coroutines.flow.collect
 
 @OptIn(
     ExperimentalComposeUiApi::class
@@ -36,7 +43,6 @@ fun CardDetailsScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
-
     val events = remember(viewModel.events, lifecycleOwner) {
         viewModel.events.flowWithLifecycle(
             lifecycleOwner.lifecycle,
@@ -48,6 +54,15 @@ fun CardDetailsScreen(
     val expiryDate by viewModel.expiryDate.collectAsState()
     val creditCardNumber by viewModel.creditCardNumber.collectAsState()
     val areInputsValid by viewModel.areInputsValid.collectAsState()
+
+    val paymentStatus = remember(viewModel.paymentStatus, lifecycleOwner) {
+        viewModel.paymentStatus.flowWithLifecycle(
+            lifecycleOwner.lifecycle,
+            Lifecycle.State.STARTED
+        )
+    }
+
+    val loadingState = viewModel.loadingState.value
 
     val creditCardNumberFocusRequester = remember { FocusRequester() }
     val cvvFocusRequester = remember { FocusRequester() }
@@ -73,93 +88,120 @@ fun CardDetailsScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(start = 16.dp, top = 200.dp, bottom = 50.dp, end = 16.dp),
-    ) {
+    LaunchedEffect(Unit) {
+        paymentStatus.collect {
+            if (it.error.isNotBlank()) {
+                Log.e(SECURE_3D_PAYMENT_TAG, it.error)
+                navController.navigate(Screen.PaymentStatusScreen.route + "?payment_status=${false}") {
+                    popUpTo(Screen.CardDetailScreen.route) {
+                        inclusive = true
+                    }
+                }
+            }
+        }
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
 
-        CustomTextField(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(creditCardNumberFocusRequester)
-                .onFocusChanged { focusState ->
-                    viewModel.onTextFieldFocusChanged(
-                        key = FocusedTextFieldKey.CREDIT_CARD_NUMBER,
-                        isFocused = focusState.isFocused
-                    )
-                },
-            labelResId = R.string.credit_card_number,
-            keyboardOptions = remember {
-                KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Next
-                )
-            },
-            visualTransformation = viewModel::getTransformedCardNumber,
-            inputWrapper = creditCardNumber,
-            onValueChange = viewModel::onCardNumberEntered,
-            onImeKeyAction = viewModel::onExpiryDateImeActionClick
-        )
-        Spacer(Modifier.height(24.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .fillMaxSize()
+                .padding(start = 16.dp, top = 200.dp, bottom = 50.dp, end = 16.dp),
         ) {
+
             CustomTextField(
                 modifier = Modifier
-                    .fillMaxWidth(0.5f)
-                    .focusRequester(expiryFocusRequester)
+                    .fillMaxWidth()
+                    .focusRequester(creditCardNumberFocusRequester)
                     .onFocusChanged { focusState ->
                         viewModel.onTextFieldFocusChanged(
-                            key = FocusedTextFieldKey.EXPIRY_DATE,
+                            key = FocusedTextFieldKey.CREDIT_CARD_NUMBER,
                             isFocused = focusState.isFocused
                         )
                     },
-                placeHolder="02/2033",
-                labelResId = R.string.expiry_date,
+                labelResId = R.string.credit_card_number,
                 keyboardOptions = remember {
                     KeyboardOptions(
                         keyboardType = KeyboardType.Number,
                         imeAction = ImeAction.Next
                     )
                 },
-                visualTransformation = viewModel::getTransformedDate,
-                inputWrapper = expiryDate,
-                onValueChange = viewModel::onExpiryDateEntered,
-                onImeKeyAction = viewModel::onCVVImeActionClick
+                visualTransformation = viewModel::getTransformedCardNumber,
+                inputWrapper = creditCardNumber,
+                onValueChange = viewModel::onCardNumberEntered,
+                onImeKeyAction = viewModel::onExpiryDateImeActionClick
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            CustomTextField(
+            Spacer(Modifier.height(24.dp))
+            Row(
                 modifier = Modifier
-                    .focusRequester(cvvFocusRequester)
-                    .onFocusChanged { focusState ->
-                        viewModel.onTextFieldFocusChanged(
-                            key = FocusedTextFieldKey.CVV,
-                            isFocused = focusState.isFocused
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                CustomTextField(
+                    modifier = Modifier
+                        .fillMaxWidth(0.5f)
+                        .focusRequester(expiryFocusRequester)
+                        .onFocusChanged { focusState ->
+                            viewModel.onTextFieldFocusChanged(
+                                key = FocusedTextFieldKey.EXPIRY_DATE,
+                                isFocused = focusState.isFocused
+                            )
+                        },
+                    placeHolder = "02/2033",
+                    labelResId = R.string.expiry_date,
+                    keyboardOptions = remember {
+                        KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next
                         )
                     },
-                labelResId = R.string.cvv,
-                keyboardOptions = remember {
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done
-                    )
-                },
-                inputWrapper = cvv,
-                onValueChange = viewModel::onCVVEntered,
-                onImeKeyAction = viewModel::onPayClick
-            )
+                    visualTransformation = viewModel::getTransformedDate,
+                    inputWrapper = expiryDate,
+                    onValueChange = viewModel::onExpiryDateEntered,
+                    onImeKeyAction = viewModel::onCVVImeActionClick
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                CustomTextField(
+                    modifier = Modifier
+                        .focusRequester(cvvFocusRequester)
+                        .onFocusChanged { focusState ->
+                            viewModel.onTextFieldFocusChanged(
+                                key = FocusedTextFieldKey.CVV,
+                                isFocused = focusState.isFocused
+                            )
+                        },
+                    labelResId = R.string.cvv,
+                    keyboardOptions = remember {
+                        KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        )
+                    },
+                    inputWrapper = cvv,
+                    onValueChange = viewModel::onCVVEntered,
+                    onImeKeyAction = viewModel::onPayClick
+                )
+            }
+            Spacer(Modifier.height(48.dp))
+            Button(
+                modifier = Modifier
+                    .height(48.dp)
+                    .fillMaxWidth(),
+                onClick = viewModel::onPayClick, enabled = areInputsValid
+            ) {
+                Text(context.getString(R.string.pay))
+            }
         }
-        Spacer(Modifier.height(48.dp))
-        Button(
-            modifier = Modifier
-                .height(48.dp)
-                .fillMaxWidth(),
-            onClick = viewModel::onPayClick, enabled = areInputsValid
-        ) {
-            Text(context.getString(R.string.pay))
+
+
+        if (loadingState) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.Center),
+                    color = TextWhite
+                )
+            }
         }
+
     }
 }
