@@ -10,6 +10,7 @@ object Constants {
 
     const val SECURE_3D_PAYMENT_TAG = "Secure3DPayment"
     const val PARAM_PAYMENT_STATUS = "payment_status"
+    const val PARAM_PAYMENT_URL = "payment_url"
 
 
 

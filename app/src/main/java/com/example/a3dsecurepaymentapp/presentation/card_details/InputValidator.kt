@@ -29,7 +29,7 @@ object InputValidator {
             cardScheme == CardScheme.DINERS_CLUB && number.length < 14 -> R.string.card_number_too_short
             (cardScheme != CardScheme.AMEX && cardScheme != CardScheme.DINERS_CLUB)
                     && number.length < 16 -> R.string.card_number_too_short
-//            !isValidCardNumber(number) -> R.string.invalid_card_number
+            !isValidCardNumber(number) -> R.string.invalid_card_number
             else -> null
         }
     }

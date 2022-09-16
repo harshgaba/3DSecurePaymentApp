@@ -1,5 +1,7 @@
 package com.example.a3dsecurepaymentapp.presentation.payment_status
 
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -11,6 +13,11 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+
+/**
+ * This Screen contains status of Payment,
+ * which either loads the Success state or Failure state.
+ */
 
 @Composable
 fun PaymentStatusScreen(
@@ -37,6 +44,9 @@ fun PaymentStatusScreen(
             text = context.getString(status.message),
             style = MaterialTheme.typography.body1
         )
+    }
 
+    BackHandler(enabled = true) {
+        (context as? Activity)?.finish()
     }
 }

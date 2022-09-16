@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.example.a3dsecurepaymentapp.R
 import com.example.a3dsecurepaymentapp.data.repository.FakePaymentRepository
 import com.example.a3dsecurepaymentapp.data.repository.FakeRepoStatus
+import com.example.a3dsecurepaymentapp.domain.model.CardDetails
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.formaters.FormatAmexCard
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.formaters.FormatDate
 import com.example.a3dsecurepaymentapp.domain.use_case.card_details.formaters.FormatDinnersClubCard
@@ -38,13 +39,14 @@ internal class CardDetailViewModelTest {
 
     @Test
     fun `get input fields validation error message, returns null`() {
-        val inputErrors = cardDetailViewModel.getInputErrorsOrNull("234", "4242424242424242","022099")
+        val inputErrors =
+            cardDetailViewModel.getInputErrorsOrNull("234", "4242424242424242", "022099")
         assertThat(inputErrors).isNull()
     }
 
     @Test
     fun `get input fields validation error message, returns message ids`() {
-        val inputErrors = cardDetailViewModel.getInputErrorsOrNull("", "","")
+        val inputErrors = cardDetailViewModel.getInputErrorsOrNull("", "", "")
         assertThat(inputErrors).isNotNull()
         assertThat(inputErrors?.cvvErrorId).isEqualTo(R.string.cvv_too_short)
         assertThat(inputErrors?.cardErrorId).isEqualTo(R.string.card_number_too_short)
@@ -57,4 +59,19 @@ internal class CardDetailViewModelTest {
             cardDetailViewModel.getTransformedCardNumber(AnnotatedString("4242424242424242"))
         assertThat(result.text.toString()).isEqualTo("4242-4242-4242-4242")
     }
+
+    @Test
+    fun `get requested credit card details`() {
+        val result =
+            cardDetailViewModel.buildCardDetails("062030", "4242424242424242", "100")
+        assertThat(result).isEqualTo(
+            CardDetails(
+                expiryMonth = "06",
+                expiryYear = "2030",
+                cvv = "100",
+                number = "4242424242424242"
+            )
+        )
+    }
+
 }

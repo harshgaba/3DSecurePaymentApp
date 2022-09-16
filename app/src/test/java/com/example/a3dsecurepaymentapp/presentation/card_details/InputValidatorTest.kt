@@ -10,7 +10,7 @@ import org.junit.Test
 import com.google.common.truth.Truth.assertThat
 
 
-internal classInputValidatorTest {
+internal class InputValidatorTest {
 
     @Test
     fun `check if card scheme is Amex and CVV is short, returns error id`() {

@@ -29,11 +29,13 @@ import com.example.a3dsecurepaymentapp.R
 import com.example.a3dsecurepaymentapp.common.Constants.SECURE_3D_PAYMENT_TAG
 import com.example.a3dsecurepaymentapp.presentation.Screen
 import com.example.a3dsecurepaymentapp.presentation.ui.theme.TextWhite
-import kotlinx.coroutines.flow.collect
 
-@OptIn(
-    ExperimentalComposeUiApi::class
-)
+/**
+ * This Screen contains Credit Card details,
+ * It contains Credit card number field,
+ * Expiry Date and CVV.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun CardDetailsScreen(
     navController: NavController,
@@ -93,6 +95,13 @@ fun CardDetailsScreen(
             if (it.error.isNotBlank()) {
                 Log.e(SECURE_3D_PAYMENT_TAG, it.error)
                 navController.navigate(Screen.PaymentStatusScreen.route + "?payment_status=${false}") {
+                    popUpTo(Screen.CardDetailScreen.route) {
+                        inclusive = true
+                    }
+                }
+            } else if (!it.payment?.secure3DUrl.isNullOrBlank()) {
+                navController.navigate(Screen.Secure3DPaymentScreen.route + "?payment_url=${it.payment?.secure3DUrl}")
+                {
                     popUpTo(Screen.CardDetailScreen.route) {
                         inclusive = true
                     }

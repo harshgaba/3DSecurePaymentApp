@@ -14,6 +14,7 @@ import com.example.a3dsecurepaymentapp.presentation.ui.theme.Secure3DAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 import  com.example.a3dsecurepaymentapp.presentation.card_details.CardDetailsScreen
 import com.example.a3dsecurepaymentapp.presentation.payment_status.PaymentStatusScreen
+import com.example.a3dsecurepaymentapp.presentation.secure_payment.Secure3DPaymentScreen
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -40,8 +41,21 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
 
-                            ) {
+                        ) {
                             PaymentStatusScreen()
+                        }
+                        composable(route = Screen.Secure3DPaymentScreen.route + "?payment_url={payment_url}",
+                            arguments = listOf(
+                                navArgument(
+                                    name = "payment_url"
+                                ) {
+                                    type = NavType.StringType
+                                    defaultValue = ""
+                                }
+                            )
+
+                        ) {
+                            Secure3DPaymentScreen(navController)
                         }
                     }
                 }
